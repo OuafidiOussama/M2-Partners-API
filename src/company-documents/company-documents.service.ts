@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as path from 'path';
 import type { Readable } from 'stream';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import { CompanyDocument } from './company-document.entity';
 import { CreateCompanyDocumentDto } from './dto/company-document.dto';
 import { AuditService } from '../audit/audit.service';
@@ -78,7 +78,7 @@ export class CompanyDocumentsService {
     const fileName = sanitizeFileName(file.originalname);
     const storageKey = path.posix.join(
       COMPANY_DOCUMENTS_DIR,
-      `${uuidv4()}${path.extname(fileName)}`,
+      `${randomUUID()}${path.extname(fileName)}`,
     );
     const mimeType = file.mimetype || 'application/octet-stream';
     await this.storage.write(storageKey, file.buffer, mimeType);

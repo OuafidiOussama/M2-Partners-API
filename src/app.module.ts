@@ -17,6 +17,8 @@ import { DelegationsModule } from './delegations/delegations.module';
 import { TeamModule } from './team/team.module';
 import { TeamsModule } from './teams/teams.module';
 
+import { ENTITIES } from './entities';
+
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
 import { ApproverGuard } from './auth/approver.guard';
@@ -34,8 +36,7 @@ import { ApproverGuard } from './auth/approver.guard';
             url: databaseUrl,
             ssl: true,
             extra: { ssl: { rejectUnauthorized: false } },
-            entities: [__dirname + '/**/*.entity{.ts,.js}'],
-            migrations: [__dirname + '/migrations/*{.ts,.js}'],
+            entities: ENTITIES,
             synchronize: false,
             logging: false,
           };
@@ -47,8 +48,7 @@ import { ApproverGuard } from './auth/approver.guard';
           username: config.get<string>('DB_USER'),
           password: config.get<string>('DB_PASS'),
           database: config.get<string>('DB_NAME'),
-          entities: [__dirname + '/**/*.entity{.ts,.js}'],
-          migrations: [__dirname + '/migrations/*{.ts,.js}'],
+          entities: ENTITIES,
           synchronize: false,
           logging: true,
         };

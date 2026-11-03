@@ -22,7 +22,8 @@ import { CreateCompanyDocumentDto } from './dto/company-document.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
 
-const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
+// Vercel rejects request bodies over 4.5 MB, multipart overhead included.
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 
 type AuthedRequest = { user: { userId: string } };
 
@@ -40,12 +41,14 @@ export class CompanyDocumentsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Res() res: Response,
   ): Promise<void> {
-    const { doc, filePath } = await this.docsService.getDownload(id);
+    const { doc, stream } = await this.docsService.getDownload(id);
     // attachment() emits `attachment; filename="<file_name>"` (plus filename*
     // for non-ASCII names); Content-Type is then pinned to the stored type.
     res.attachment(doc.file_name);
     res.setHeader('Content-Type', doc.mime_type);
-    res.sendFile(filePath);
+    res.setHeader('Cache-Control', 'private, no-store');
+    stream.on('error', () => res.destroy());
+    stream.pipe(res);
   }
 
   @Post()

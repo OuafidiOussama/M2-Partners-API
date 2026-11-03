@@ -20,5 +20,9 @@ export const AppDataSource = new DataSource({
   extra: isProduction ? { ssl: { rejectUnauthorized: false } } : {},
   entities: ['src/**/*.entity.ts'],
   migrations: ['src/migrations/*.ts'],
+  // One transaction per migration: Postgres won't let a migration use an enum
+  // value that an earlier one added in the same transaction, which breaks
+  // running them all at once on a fresh database.
+  migrationsTransactionMode: 'each',
   synchronize: false,
 });

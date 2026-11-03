@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as path from 'path';
+import type { Readable } from 'stream';
 import { v4 as uuidv4 } from 'uuid';
 import { CompanyDocument } from './company-document.entity';
 import { CreateCompanyDocumentDto } from './dto/company-document.dto';
@@ -56,16 +57,17 @@ export class CompanyDocumentsService {
     return docs.map(toView);
   }
 
-  /** Resolves a document and the absolute path of its stored file. */
+  /** Resolves a document and opens its stored file. */
   async getDownload(
     id: string,
-  ): Promise<{ doc: CompanyDocument; filePath: string }> {
+  ): Promise<{ doc: CompanyDocument; stream: Readable }> {
     const doc = await this.docsRepo.findOne({ where: { id } });
     if (!doc) throw new NotFoundException('We could not find this document');
-    if (!this.storage.exists(doc.storage_key)) {
+    const stream = await this.storage.read(doc.storage_key);
+    if (!stream) {
       throw new NotFoundException('This document is not available right now');
     }
-    return { doc, filePath: this.storage.resolve(doc.storage_key) };
+    return { doc, stream };
   }
 
   async create(
@@ -78,7 +80,8 @@ export class CompanyDocumentsService {
       COMPANY_DOCUMENTS_DIR,
       `${uuidv4()}${path.extname(fileName)}`,
     );
-    await this.storage.write(storageKey, file.buffer);
+    const mimeType = file.mimetype || 'application/octet-stream';
+    await this.storage.write(storageKey, file.buffer, mimeType);
 
     let saved: CompanyDocument;
     try {
@@ -89,7 +92,7 @@ export class CompanyDocumentsService {
           sort_order: dto.sort_order ?? 0,
           file_name: fileName,
           storage_key: storageKey,
-          mime_type: file.mimetype || 'application/octet-stream',
+          mime_type: mimeType,
         }),
       );
     } catch (err) {

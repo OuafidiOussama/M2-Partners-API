@@ -1,7 +1,7 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import { ConfigService } from '@nestjs/config';
 import { EntityManager } from 'typeorm';
 import { AppDataSource } from './data-source';
+import { StorageService } from './common/services/storage.service';
 import { User } from './users/user.entity';
 import { Employee } from './employees/employee.entity';
 import {
@@ -26,7 +26,6 @@ import { isoToDate, todayIso } from './common/utils/date.util';
  */
 
 const ADMIN_EMAIL = 'oussama.ouafidi@m2partnersglobal.com';
-const STORAGE_PATH = process.env.STORAGE_PATH ?? './storage';
 
 // --- date helpers ------------------------------------------------------------
 
@@ -457,6 +456,8 @@ async function seedHolidays(em: EntityManager, year: number) {
 
 async function seedCompanyDocuments(em: EntityManager) {
   console.log('Company documents');
+  // ConfigService falls back to process.env (loaded by data-source).
+  const storage = new StorageService(new ConfigService());
   const docs = [
     {
       category: CompanyDocumentCategory.GUIDE,
@@ -479,10 +480,12 @@ async function seedCompanyDocuments(em: EntityManager) {
   ];
   for (const doc of docs) {
     const storage_key = `company-documents/seed-${doc.file_name}`;
-    const filePath = path.join(STORAGE_PATH, storage_key);
-    if (!fs.existsSync(filePath)) {
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
-      fs.writeFileSync(filePath, placeholderPdf(doc.title));
+    if (!(await storage.exists(storage_key))) {
+      await storage.write(
+        storage_key,
+        placeholderPdf(doc.title),
+        'application/pdf',
+      );
     }
     const exists = await em.exists(CompanyDocument, {
       where: { category: doc.category, title: doc.title },

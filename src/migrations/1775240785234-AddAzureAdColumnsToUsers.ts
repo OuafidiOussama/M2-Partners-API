@@ -26,7 +26,11 @@ export class AddAzureAdColumnsToUsers1775240785234 implements MigrationInterface
     await queryRunner.query(
       `ALTER TABLE "users" DROP CONSTRAINT IF EXISTS "UQ_users_azure_oid"`,
     );
-    await queryRunner.query(`ALTER TABLE "users" DROP COLUMN IF EXISTS "azure_email"`);
-    await queryRunner.query(`ALTER TABLE "users" DROP COLUMN IF EXISTS "azure_oid"`);
+    await queryRunner.query(
+      `ALTER TABLE "users" DROP COLUMN IF EXISTS "azure_email"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "users" DROP COLUMN IF EXISTS "azure_oid"`,
+    );
   }
 }

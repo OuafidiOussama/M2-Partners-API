@@ -11,6 +11,9 @@ export interface AzureAdPayload {
   name: string;
 }
 
+const NO_EMPLOYEE_MESSAGE =
+  'Your Microsoft account does not match an active employee. Please contact HR.';
+
 @Injectable()
 export class AzureAdStrategy extends PassportStrategy(Strategy, 'azure-ad') {
   constructor(
@@ -36,32 +39,35 @@ export class AzureAdStrategy extends PassportStrategy(Strategy, 'azure-ad') {
   }
 
   async validate(payload: AzureAdPayload) {
-    console.log('[AzureAD] token claims:', JSON.stringify(payload, null, 2));
-
     if (!payload.oid || !payload.preferred_username) {
-      console.log('[AzureAD] missing oid or preferred_username — full payload keys:', Object.keys(payload));
-      throw new UnauthorizedException('Invalid Azure AD token claims');
+      throw new UnauthorizedException(
+        'We could not verify your Microsoft sign-in.',
+      );
     }
 
     let user = await this.usersService.findByAzureOid(payload.oid);
-    console.log('[AzureAD] findByAzureOid result:', user?.id ?? 'null');
 
     if (!user) {
       const emailLower = payload.preferred_username.toLowerCase().trim();
-      console.log('[AzureAD] falling back to email lookup:', emailLower);
       user = await this.usersService.findByEmail(emailLower);
-      console.log('[AzureAD] findByEmail result:', user?.id ?? 'null');
       if (!user) {
         user = await this.usersService.findByAzureEmail(emailLower);
-        console.log('[AzureAD] findByAzureEmail result:', user?.id ?? 'null');
       }
       if (!user) {
-        throw new UnauthorizedException(
-          'No employee account found for this Azure AD identity.',
-        );
+        throw new UnauthorizedException(NO_EMPLOYEE_MESSAGE);
       }
+    }
+
+    if (!(await this.usersService.hasActiveEmployee(user.id))) {
+      throw new UnauthorizedException(NO_EMPLOYEE_MESSAGE);
+    }
+
+    if (user.azure_oid !== payload.oid) {
       await this.usersService.updateAzureOid(user.id, payload.oid);
-      await this.usersService.updateAzureEmail(user.id, payload.preferred_username);
+      await this.usersService.updateAzureEmail(
+        user.id,
+        payload.preferred_username,
+      );
     }
 
     return {

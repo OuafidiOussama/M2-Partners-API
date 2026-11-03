@@ -7,80 +7,92 @@ import {
   Body,
   Request,
   Query,
-  HttpCode,
-  HttpStatus,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { LeavesService } from './leaves.service';
-import { CreateLeaveDto, RejectLeaveDto } from './dto/leave.dto';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { Role } from '../common/enums/role.enum';
+import {
+  ApprovalQueryDto,
+  AllowanceQueryDto,
+  LogSickDayDto,
+  RejectLeaveDto,
+  RequestVacationDto,
+  TeamAbsenceQueryDto,
+} from './dto/leave.dto';
+import { Approver } from '../auth/decorators/approver.decorator';
+import { ReviewActor } from '../common/review-actor';
+
+type AuthedRequest = { user: { userId: string } };
+type ReviewerRequest = { user: ReviewActor };
 
 @Controller('leaves')
 export class LeavesController {
   constructor(private readonly leavesService: LeavesService) {}
 
-  @Post()
-  @HttpCode(HttpStatus.CREATED)
-  submit(
-    @Body() dto: CreateLeaveDto,
-    @Request() req: { user: { userId: string } },
-  ) {
-    return this.leavesService.submit(dto, req.user.userId);
-  }
+  // --- employee-facing ------------------------------------------------------
 
   @Get('my')
-  getMyLeaves(@Request() req: { user: { userId: string } }) {
+  getMyLeaves(@Request() req: AuthedRequest) {
     return this.leavesService.findMyLeaves(req.user.userId);
   }
 
-  @Get('balance')
-  getBalance(@Request() req: { user: { userId: string } }) {
-    return this.leavesService.getMyBalance(req.user.userId);
+  @Get('allowance')
+  getAllowance(
+    @Query() query: AllowanceQueryDto,
+    @Request() req: AuthedRequest,
+  ) {
+    return this.leavesService.getMyAllowance(req.user.userId, query.year);
   }
 
-  @Get()
-  @Roles(Role.ADMIN)
-  findAll(
-    @Query('status') status?: string,
-    @Query('type') type?: string,
-    @Query('employeeId') employeeId?: string,
+  @Get('team')
+  getTeamAbsences(@Query() query: TeamAbsenceQueryDto) {
+    return this.leavesService.getTeamAbsences(query.from, query.to);
+  }
+
+  @Post('vacation')
+  requestVacation(
+    @Body() dto: RequestVacationDto,
+    @Request() req: AuthedRequest,
   ) {
-    return this.leavesService.findAll({ status, type, employeeId });
+    return this.leavesService.requestVacation(dto, req.user.userId);
+  }
+
+  @Post('sick')
+  logSickDay(@Body() dto: LogSickDayDto, @Request() req: AuthedRequest) {
+    return this.leavesService.logSickDay(dto, req.user.userId);
   }
 
   @Patch(':id/cancel')
   cancel(
-    @Param('id') id: string,
-    @Request() req: { user: { userId: string } },
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: AuthedRequest,
   ) {
     return this.leavesService.cancel(id, req.user.userId);
   }
 
+  // --- approvers (admins and active delegates) ----------------------------
+
+  @Get()
+  @Approver()
+  findAll(@Query() query: ApprovalQueryDto) {
+    return this.leavesService.findAll(query);
+  }
+
   @Patch(':id/approve')
-  @Roles(Role.ADMIN)
+  @Approver()
   approve(
-    @Param('id') id: string,
-    @Request() req: { user: { userId: string } },
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: ReviewerRequest,
   ) {
-    return this.leavesService.approve(id, req.user.userId);
+    return this.leavesService.approve(id, req.user);
   }
 
   @Patch(':id/reject')
-  @Roles(Role.ADMIN)
+  @Approver()
   reject(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: RejectLeaveDto,
-    @Request() req: { user: { userId: string } },
+    @Request() req: ReviewerRequest,
   ) {
-    return this.leavesService.reject(id, dto, req.user.userId);
-  }
-
-  @Patch(':id/force-approve')
-  @Roles(Role.ADMIN)
-  forceApprove(
-    @Param('id') id: string,
-    @Request() req: { user: { userId: string } },
-  ) {
-    return this.leavesService.forceApprove(id, req.user.userId);
+    return this.leavesService.reject(id, dto, req.user);
   }
 }

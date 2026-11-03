@@ -5,9 +5,10 @@ import { AuthController } from './auth.controller';
 import { AzureAdStrategy } from './azure-ad.strategy';
 import { UsersModule } from '../users/users.module';
 import { EmployeesModule } from '../employees/employees.module';
+import { DelegationsModule } from '../delegations/delegations.module';
 
 @Module({
-  imports: [PassportModule, UsersModule, EmployeesModule],
+  imports: [PassportModule, UsersModule, EmployeesModule, DelegationsModule],
   providers: [AuthService, AzureAdStrategy],
   controllers: [AuthController],
 })

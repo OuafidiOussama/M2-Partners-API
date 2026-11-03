@@ -5,7 +5,6 @@ import {
   CreateDateColumn,
   OneToOne,
 } from 'typeorm';
-import { Exclude } from 'class-transformer';
 import { Role } from '../common/enums/role.enum';
 import { Employee } from '../employees/employee.entity';
 
@@ -16,14 +15,6 @@ export class User {
 
   @Column({ unique: true })
   email: string;
-
-  @Column({ nullable: true })
-  @Exclude()
-  password: string;
-
-  @Column({ nullable: true })
-  @Exclude()
-  refresh_token: string;
 
   @Column({ nullable: true, unique: true })
   azure_oid: string;

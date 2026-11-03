@@ -5,9 +5,14 @@ import {
   Delete,
   Param,
   Body,
+  Query,
+  Request,
+  ParseUUIDPipe,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { HolidaysService } from './holidays.service';
-import { CreateHolidayDto } from './dto/holiday.dto';
+import { CreateHolidayDto, HolidayQueryDto } from './dto/holiday.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
 
@@ -16,19 +21,26 @@ export class HolidaysController {
   constructor(private readonly holidaysService: HolidaysService) {}
 
   @Get()
-  findAll() {
-    return this.holidaysService.findAll();
+  findAll(@Query() query: HolidayQueryDto) {
+    return this.holidaysService.findByYearAndCountry(query.year, query.country);
   }
 
   @Post()
   @Roles(Role.ADMIN)
-  create(@Body() dto: CreateHolidayDto) {
-    return this.holidaysService.create(dto);
+  create(
+    @Body() dto: CreateHolidayDto,
+    @Request() req: { user: { userId: string } },
+  ) {
+    return this.holidaysService.create(dto, req.user.userId);
   }
 
   @Delete(':id')
   @Roles(Role.ADMIN)
-  remove(@Param('id') id: string) {
-    return this.holidaysService.remove(id);
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: { user: { userId: string } },
+  ) {
+    return this.holidaysService.remove(id, req.user.userId);
   }
 }

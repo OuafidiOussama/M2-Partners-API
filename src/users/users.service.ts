@@ -26,7 +26,17 @@ export class UsersService {
   }
 
   findByAzureEmail(email: string): Promise<User | null> {
-    return this.usersRepo.findOne({ where: { azure_email: email } });
+    return this.usersRepo
+      .createQueryBuilder('u')
+      .where('LOWER(u.azure_email) = LOWER(:email)', { email })
+      .getOne();
+  }
+
+  /** A user may only sign in when linked to an active employee record. */
+  hasActiveEmployee(userId: string): Promise<boolean> {
+    return this.usersRepo.exists({
+      where: { id: userId, employee: { is_active: true } },
+    });
   }
 
   async updateAzureOid(userId: string, oid: string): Promise<void> {
@@ -35,10 +45,6 @@ export class UsersService {
 
   async updateAzureEmail(userId: string, email: string): Promise<void> {
     await this.usersRepo.update(userId, { azure_email: email });
-  }
-
-  async updateRefreshToken(userId: string, token: string | null): Promise<void> {
-    await this.usersRepo.update(userId, { refresh_token: token ?? undefined });
   }
 
   async create(data: Partial<User>): Promise<User> {

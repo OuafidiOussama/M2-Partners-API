@@ -3,17 +3,23 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { APP_GUARD } from '@nestjs/core';
 
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { EmployeesModule } from './employees/employees.module';
 import { LeavesModule } from './leaves/leaves.module';
 import { HolidaysModule } from './holidays/holidays.module';
-import { DocumentsModule } from './documents/documents.module';
-import { ChatModule } from './chat/chat.module';
 import { AuditModule } from './audit/audit.module';
+import { CompanyDocumentsModule } from './company-documents/company-documents.module';
+import { DelegationsModule } from './delegations/delegations.module';
+import { TeamModule } from './team/team.module';
+import { TeamsModule } from './teams/teams.module';
 
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
+import { ApproverGuard } from './auth/approver.guard';
 
 @Module({
   imports: [
@@ -53,13 +59,18 @@ import { RolesGuard } from './auth/roles.guard';
     EmployeesModule,
     LeavesModule,
     HolidaysModule,
-    DocumentsModule,
-    ChatModule,
     AuditModule,
+    CompanyDocumentsModule,
+    DelegationsModule,
+    TeamModule,
+    TeamsModule,
   ],
+  controllers: [AppController],
   providers: [
+    AppService,
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_GUARD, useClass: ApproverGuard },
   ],
 })
 export class AppModule {}

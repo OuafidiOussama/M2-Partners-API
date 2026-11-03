@@ -1,5 +1,0 @@
-export enum DocumentStatus {
-  PENDING = 'PENDING',
-  GENERATED = 'GENERATED',
-  DOWNLOADABLE = 'DOWNLOADABLE',
-}
